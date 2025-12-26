@@ -10,6 +10,7 @@ import org.microserviceteam.microlink_user.repository.UserRepository;
 import org.microserviceteam.microlink_user.security.jwt.JwtUtils;
 import org.microserviceteam.microlink_user.security.services.UserDetailsImpl;
 import org.microserviceteam.microlink_user.service.ProcessService;
+import org.microserviceteam.microlink_user.client.WorkflowClient;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -50,6 +51,9 @@ public class AuthController {
 
     @Autowired
     ProcessService processService;
+
+    @Autowired
+    WorkflowClient workflowClient;
 
     @Value("${app.jwtExpirationMs}")
     private long jwtExpirationMs;
@@ -134,7 +138,9 @@ public class AuthController {
         try {
             Map<String, Object> variables = new HashMap<>();
             variables.put("applicant", savedUser.getUsername());
-            processService.startProcess("user-onboarding", String.valueOf(savedUser.getId()), variables);
+            variables.put("userId", savedUser.getId());
+            // processService.startProcess("user-onboarding", String.valueOf(savedUser.getId()), variables);
+            workflowClient.startProcess("user-onboarding-process", variables);
         } catch (Exception e) {
             // Log error but do not fail registration
             System.err.println("Failed to start onboarding process: " + e.getMessage());

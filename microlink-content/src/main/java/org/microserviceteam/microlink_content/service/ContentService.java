@@ -2,6 +2,7 @@ package org.microserviceteam.microlink_content.service;
 
 import org.microserviceteam.microlink_content.client.UserDTO;
 import org.microserviceteam.microlink_content.client.UserServiceClient;
+import org.microserviceteam.microlink_content.client.WorkflowClient;
 import org.microserviceteam.microlink_content.model.Content;
 import org.microserviceteam.microlink_content.model.ContentMedia;
 import org.microserviceteam.microlink_content.payload.request.PublishRequest;
@@ -35,6 +36,9 @@ public class ContentService {
 
     @Autowired
     private ProcessService processService;
+
+    @Autowired
+    private WorkflowClient workflowClient;
     
     @Autowired
     private UserServiceClient userServiceClient;
@@ -119,7 +123,8 @@ public class ContentService {
         Map<String, Object> variables = new HashMap<>();
         variables.put("contentId", savedContent.getId());
         variables.put("authorId", authorId);
-        processService.startProcess("content-review", variables);
+        // processService.startProcess("content-review", variables);
+        workflowClient.startProcess("content-publish-process", variables);
 
         return savedContent;
     }
@@ -221,5 +226,19 @@ public class ContentService {
             content.setStatus(status);
             contentRepository.save(content);
         }
+    }
+
+    public boolean checkContent(Long id) {
+        Content content = getContent(id);
+        if (content == null) {
+            return false;
+        }
+        // Simple mock logic for auto-review
+        // Reject if title or content contains "Bad words"
+        String text = (content.getTitle() + " " + content.getText()).toLowerCase();
+        if (text.contains("bad words")) {
+            return false;
+        }
+        return true;
     }
 }

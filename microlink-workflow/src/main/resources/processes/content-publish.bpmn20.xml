@@ -1,21 +1,47 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
              xmlns:activiti="http://activiti.org/bpmn"
-             targetNamespace="Examples">
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+             targetNamespace="http://activiti.org/content-system">
 
-    <process id="content-publish-process" name="Content Publish Process" isExecutable="true">
-        <startEvent id="start" />
-        <sequenceFlow sourceRef="start" targetRef="autoReviewTask" />
+    <message id="MSG_INDEX_SYNC_V2" name="INDEX_SYNC_MESSAGE_V2" />
+    <message id="MSG_PUSH_V2" name="SEND_PUSH_MSG_V2" />
 
-        <serviceTask id="autoReviewTask" name="Automated Content Review"
-                     activiti:delegateExpression="${contentReviewDelegate}" />
-        
-        <sequenceFlow sourceRef="autoReviewTask" targetRef="publishTask" />
+    <process id="content-publish-process-v2" name="Content Publish Process" isExecutable="true">
+        <startEvent id="startEvent" name="Start" />
+        <sequenceFlow id="flow1" sourceRef="startEvent" targetRef="autoReviewTask" />
+        <serviceTask id="autoReviewTask" name="Automated Content Review" activiti:delegateExpression="${contentReviewDelegate}" />
+        <sequenceFlow id="flow2" sourceRef="autoReviewTask" targetRef="reviewGateway" />
+        <exclusiveGateway id="reviewGateway" name="Review Result" />
+        <sequenceFlow id="flowApproved" name="Approved" sourceRef="reviewGateway" targetRef="publishTask">
+            <conditionExpression xsi:type="tFormalExpression">${autoCheckPassed == true}</conditionExpression>
+        </sequenceFlow>
+        <sequenceFlow id="flowRejected" name="Rejected" sourceRef="reviewGateway" targetRef="endEventRejected">
+             <conditionExpression xsi:type="tFormalExpression">${autoCheckPassed == false}</conditionExpression>
+        </sequenceFlow>
+        <serviceTask id="publishTask" name="Publish Content" activiti:delegateExpression="${contentPublishDelegate}" />
+        <sequenceFlow id="flow4" sourceRef="publishTask" targetRef="endEventPublished" />
+        <endEvent id="endEventPublished" name="Published" />
+        <endEvent id="endEventRejected" name="Review Failed" />
+    </process>
 
-        <serviceTask id="publishTask" name="Publish Content"
-                     activiti:delegateExpression="${contentPublishDelegate}" />
-
-        <sequenceFlow sourceRef="publishTask" targetRef="end" />
-        <endEvent id="end" />
+    <process id="index-sync-process-v2" name="Content Index Process" isExecutable="true">
+        <startEvent id="start-index" name="Index Sync Trigger">
+            <messageEventDefinition messageRef="MSG_INDEX_SYNC_V2" />
+        </startEvent>
+        <parallelGateway id="gw-index-split" />
+        <serviceTask id="task-es-index" name="Update ES Index" activiti:delegateExpression="${persistenceDelegate}" />
+        <serviceTask id="task-trigger-collect" name="Log Sync Event" activiti:delegateExpression="${triggerCollectionDelegate}" />
+        <parallelGateway id="gw-index-join" />
+        <endEvent id="end-index" />
+        <sequenceFlow id="idx1" sourceRef="start-index" targetRef="gw-index-split" />
+        <sequenceFlow id="idx2" sourceRef="gw-index-split" targetRef="task-es-index" />
+        <sequenceFlow id="idx3" sourceRef="gw-index-split" targetRef="task-trigger-collect" />
+        <sequenceFlow id="idx4" sourceRef="task-es-index" targetRef="gw-index-join" />
+        <sequenceFlow id="idx5" sourceRef="task-trigger-collect" targetRef="gw-index-join" />
+        <sequenceFlow id="idx6" sourceRef="gw-index-join" targetRef="end-index" />
     </process>
 </definitions>

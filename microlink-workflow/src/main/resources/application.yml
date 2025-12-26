@@ -10,7 +10,7 @@ spring:
 
   activiti:
     database-schema-update: true
-    check-process-definitions: true
+    check-process-definitions: false
     deployment-mode: single-resource
     history-level: full
     db-history-used: true
@@ -30,4 +30,3 @@ spring:
       hibernate:
         ddl-auto: update
       show-sql: true
-

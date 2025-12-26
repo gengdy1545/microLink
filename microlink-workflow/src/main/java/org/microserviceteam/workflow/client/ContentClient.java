@@ -11,4 +11,7 @@ public interface ContentClient {
 
     @PutMapping("/status/{id}")
     ResponseEntity<?> updateStatus(@PathVariable("id") Long id, @RequestParam("status") String status);
+
+    @org.springframework.web.bind.annotation.PostMapping("/check/{id}")
+    ResponseEntity<Boolean> checkContent(@PathVariable("id") Long id);
 }

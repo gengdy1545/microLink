@@ -1,12 +1,10 @@
 package org.microserviceteam.workflow.delegate.social;
 
 import org.activiti.engine.delegate.DelegateExecution;
-import org.activiti.engine.delegate.JavaDelegate;
 import org.microserviceteam.common.Result;
-import org.microserviceteam.workflow.client.PushClient;
+import org.microserviceteam.common.dto.search.ContentDoc;
+import org.microserviceteam.workflow.client.SearchClient;
 import org.microserviceteam.workflow.client.SocialClient;
-import org.microserviceteam.workflow.client.StatsClient;
-import org.microserviceteam.workflow.config.Constants;
 import org.microserviceteam.workflow.delegate.BaseWorkflowDelegate;
 import org.microserviceteam.workflow.service.WorkflowService;
 import org.microserviceteam.workflow.util.ProcessVariableUtil;
@@ -25,75 +23,53 @@ public class PersistenceDelegate extends BaseWorkflowDelegate {
     private static final Logger logger = LoggerFactory.getLogger(PersistenceDelegate.class);
 
     @Autowired
-    private SocialClient socialClient; // 注入 SocialClient
+    private SocialClient socialClient;
+
+    @Autowired
+    private SearchClient searchClient;
 
     @Autowired
     private WorkflowService workflowService;
 
     @Override
     protected String run(DelegateExecution execution) throws Exception {
-        // 1. 获取基础变量
         String action = ProcessVariableUtil.getString(execution, "action", "UNKNOWN");
         String userId = ProcessVariableUtil.getString(execution, "userId", "anonymous");
-        String content = ProcessVariableUtil.getString(execution, "content", "null");
         String instanceId = execution.getProcessInstanceId();
 
-        // 2. 检查前置校验状态（遵循不抛错、设变量继续规范）
-        Boolean isPassed = (Boolean) execution.getVariable("isPassed");
-        if (Boolean.FALSE.equals(isPassed)) {
-            String skipMsg = "Persistence Skipped: Previous validation failed.";
-            logger.warn(">>> [持久化服务] 实例 {} 校验未通过，跳过入库逻辑", instanceId);
-            return skipMsg;
-        }
+        logger.info(">>> [Persistence Service] Action: {}, Instance: {}", action, instanceId);
 
-        try {
-            logger.info(">>> [持久化服务] 准备调用社会化微服务. 实例: {}, 动作: {}", instanceId, action);
-
-            // 3. 执行核心业务入库 (Feign 调用)
-            Result<Void> repoResult = socialClient.saveInteractionRecord(userId, action, instanceId, content);
-
-            if (repoResult.getCode() != 200) {
-                // 业务入库失败，更新 isPassed 为 false
-                execution.setVariable("isPassed", false);
-                String errorMsg = "Persistence DB Error: " + repoResult.getMessage();
-                execution.setVariable(Constants.LAST_OUTPUT, errorMsg);
-                logger.error(">>> [持久化服务] 业务入库失败: {}", errorMsg);
-                return errorMsg;
-            } else {
-                // 4. 入库成功，开始触发协作子流程 (对应原本的 invokeRemoteServices)
-                logger.info(">>> [持久化服务] 入库成功，正在通过 WorkflowService 触发子流程...");
-
-                // 准备子流程上下文，注入 parentInstanceId 用于递归回溯
-                Map<String, Object> subVars = new HashMap<>(execution.getVariables());
-                subVars.put("parentInstanceId", instanceId);
-
-                // 触发统计流程 (Stats)
-                invokeStats(execution, subVars);
+        if ("USER_ONBOARDING".equals(action)) {
+            logger.info(">>> [Persistence Service] Building user index (Mock)...");
+            return "User index built";
+        } else if ("CONTENT_PUBLISH".equals(action)) {
+            Long contentId = null;
+            Object contentIdObj = execution.getVariable("contentId");
+            if (contentIdObj != null) {
+                contentId = Long.valueOf(contentIdObj.toString());
             }
-
-        } catch (Exception e) {
-            // 系统级异常（超时、宕机等），按规范不抛出异常，记录到变量
-            execution.setVariable("isPassed", false);
-            String sysError = "Persistence System Exception: " + e.getMessage();
-            execution.setVariable(Constants.LAST_OUTPUT, sysError);
-            logger.error(">>> [持久化服务] 系统故障: {}", sysError);
+            
+            logger.info(">>> [Persistence Service] Syncing search index for content {}...", contentId);
+            
+            ContentDoc doc = new ContentDoc();
+            try {
+                Result<String> result = searchClient.indexContent(doc);
+                logger.info(">>> [Persistence Service] Index sync called.");
+            } catch (Exception e) {
+                logger.error(">>> [Persistence Service] Index sync error: {}", e.getMessage());
+            }
+            return "Content index synced";
+        } else {
+            // Social logic (V2 messages)
+            Result<Void> repoResult = socialClient.saveInteractionRecord(userId, action, instanceId, "content");
+            
+            Map<String, Object> subVars = new HashMap<>();
+            subVars.put("userId", userId);
+            subVars.put("action", action);
+            workflowService.startByMessage("RECORD_STATS_MSG_V2", subVars, execution);
+            workflowService.startByMessage("SEND_PUSH_MSG_V2", subVars, execution);
+            
+            return "Social persistence success";
         }
-        return "Social [持久化服务] 入库成功";
-    }
-
-    private void invokeStats(DelegateExecution execution, Map<String, Object> subVars) {
-        System.out.println("--- 执行持久化任务 ---");
-
-        // 1. 准备传递给子流程的变量（从当前流程获取）
-        Map<String, Object> vars = new HashMap<>();
-        vars.put("action", execution.getVariable("action"));
-        vars.put("operator", execution.getVariable("operator"));
-        vars.put("timestamp", System.currentTimeMillis());
-
-        // 2. 调用封装好的方法触发【统计流程】
-        workflowService.startByMessage("RECORD_STATS_MSG", vars, execution);
-        // 3. 调用封装好的方法触发【推送流程】
-        workflowService.startByMessage("SEND_PUSH_MSG", vars, execution);
-        System.out.println("--- 异步子流程已通过消息机制触发完毕 ---");
     }
 }

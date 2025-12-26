@@ -90,6 +90,12 @@ public class ContentController {
         }
     }
 
+    @PostMapping("/check/{id}")
+    public ResponseEntity<Boolean> checkContent(@PathVariable Long id) {
+        boolean result = contentService.checkContent(id);
+        return ResponseEntity.ok(result);
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@PathVariable Long id) {
         String authorId = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();

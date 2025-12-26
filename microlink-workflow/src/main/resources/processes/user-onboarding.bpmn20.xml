@@ -1,20 +1,44 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
-             xmlns:activiti="http://activiti.org/bpmn"
-             targetNamespace="Examples">
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" 
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+             xmlns:activiti="http://activiti.org/bpmn" 
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" 
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC" 
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI" 
+             targetNamespace="http://activiti.org/user-system">
+             
+    <message id="MSG_USER_INDEX_V2" name="USER_INDEX_SYNC_MSG_V2" />
+    <message id="MSG_PUSH_V2" name="SEND_PUSH_MSG_V2" />
 
-    <process id="user-onboarding-process" name="User Onboarding Process" isExecutable="true">
-        <startEvent id="start" />
-        <sequenceFlow sourceRef="start" targetRef="manualApprovalTask" />
+    <process id="user-onboarding-process-v2" name="User Onboarding Process" isExecutable="true">
+        <startEvent id="startEvent" name="Start" />
+        <sequenceFlow id="flow1" sourceRef="startEvent" targetRef="approveTask" />
+        <userTask id="approveTask" name="Admin Approval" activiti:assignee="admin">
+            <documentation>Approve new user registration.</documentation>
+        </userTask>
+        <sequenceFlow id="flow2" sourceRef="approveTask" targetRef="activateUserTask" />
+        <serviceTask id="activateUserTask" name="Activate User" activiti:delegateExpression="${userApprovalDelegate}" />
+        <sequenceFlow id="flow3" sourceRef="activateUserTask" targetRef="endEvent" />
+        <endEvent id="endEvent" name="End" />
+    </process>
+    
+    <process id="user-index-process-v2" name="User Index Process" isExecutable="true">
+        <startEvent id="start-index" name="Index Sync Message">
+            <messageEventDefinition messageRef="MSG_USER_INDEX_V2" />
+        </startEvent>
+        <serviceTask id="task-index-logic" name="Build User Index" activiti:delegateExpression="${persistenceDelegate}" />
+        <endEvent id="end-index" />
+        <sequenceFlow id="idx1" sourceRef="start-index" targetRef="task-index-logic" />
+        <sequenceFlow id="idx2" sourceRef="task-index-logic" targetRef="end-index" />
+    </process>
 
-        <userTask id="manualApprovalTask" name="Manual Admin Approval" activiti:assignee="admin" />
-
-        <sequenceFlow sourceRef="manualApprovalTask" targetRef="activateUserTask" />
-
-        <serviceTask id="activateUserTask" name="Activate User"
-                     activiti:delegateExpression="${userApprovalDelegate}" />
-
-        <sequenceFlow sourceRef="activateUserTask" targetRef="end" />
-        <endEvent id="end" />
+    <process id="push-process-v2" name="Message Push Process" isExecutable="true">
+        <startEvent id="start-push" name="Push Trigger Message">
+            <messageEventDefinition messageRef="MSG_PUSH_V2" />
+        </startEvent>
+        <serviceTask id="task-push-logic" name="Execute Push Logic" activiti:delegateExpression="${pushDelegate}" />
+        <endEvent id="end-push" />
+        <sequenceFlow id="p1" sourceRef="start-push" targetRef="task-push-logic" />
+        <sequenceFlow id="p2" sourceRef="task-push-logic" targetRef="end-push" />
     </process>
 </definitions>
