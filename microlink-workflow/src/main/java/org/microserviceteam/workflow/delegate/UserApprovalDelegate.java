@@ -39,7 +39,15 @@ public class UserApprovalDelegate implements JavaDelegate {
         vars.put("userId", userId);
         vars.put("action", "USER_ONBOARDING");
 
-        workflowService.startByMessage("USER_INDEX_SYNC_MSG_V2", vars, execution);
-        workflowService.startByMessage("SEND_PUSH_MSG_V2", vars, execution);
+        try {
+            workflowService.startByMessage("USER_INDEX_SYNC_MSG_V2", vars, execution);
+        } catch (Exception e) {
+            System.err.println("Failed to trigger USER_INDEX_SYNC_MSG_V2: " + e.getMessage());
+        }
+        try {
+            workflowService.startByMessage("SEND_PUSH_MSG_USER_V2", vars, execution);
+        } catch (Exception e) {
+            System.err.println("Failed to trigger SEND_PUSH_MSG_USER_V2: " + e.getMessage());
+        }
     }
 }

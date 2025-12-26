@@ -39,7 +39,15 @@ public class ContentPublishDelegate implements JavaDelegate {
         vars.put("contentId", contentId);
         vars.put("action", "CONTENT_PUBLISH");
 
-        workflowService.startByMessage("INDEX_SYNC_MESSAGE_V2", vars, execution);
-        workflowService.startByMessage("SEND_PUSH_MSG_V2", vars, execution);
+        try {
+            workflowService.startByMessage("INDEX_SYNC_MESSAGE_V2", vars, execution);
+        } catch (Exception e) {
+            System.err.println("Failed to trigger INDEX_SYNC_MESSAGE_V2: " + e.getMessage());
+        }
+        try {
+            workflowService.startByMessage("SEND_PUSH_MSG_V2", vars, execution);
+        } catch (Exception e) {
+            System.err.println("Failed to trigger SEND_PUSH_MSG_V2: " + e.getMessage());
+        }
     }
 }

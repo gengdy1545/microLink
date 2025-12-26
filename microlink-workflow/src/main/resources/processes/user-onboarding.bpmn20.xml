@@ -8,7 +8,17 @@
              targetNamespace="http://activiti.org/user-system">
              
     <message id="MSG_USER_INDEX_V2" name="USER_INDEX_SYNC_MSG_V2" />
-    <message id="MSG_PUSH_V2" name="SEND_PUSH_MSG_V2" />
+    <message id="MSG_PUSH_USER_V2" name="SEND_PUSH_MSG_USER_V2" />
+
+    <collaboration id="collab-user-system">
+        <participant id="part-user" name="User Management Service" processRef="user-onboarding-process-v2" />
+        <participant id="part-index" name="Search Service" processRef="user-index-process-v2" />
+        <participant id="part-push" name="Message Push Service" processRef="push-process-v2" />
+        
+        <!-- 消息流：从 Activate User 节点触发子流程消息 -->
+        <messageFlow id="msg-flow-index" name="Sync Search Index" sourceRef="activateUserTask" targetRef="start-index" />
+        <messageFlow id="msg-flow-push" name="Send Notification" sourceRef="activateUserTask" targetRef="start-push" />
+    </collaboration>
 
     <process id="user-onboarding-process-v2" name="User Onboarding Process" isExecutable="true">
         <startEvent id="startEvent" name="Start" />
@@ -32,13 +42,105 @@
         <sequenceFlow id="idx2" sourceRef="task-index-logic" targetRef="end-index" />
     </process>
 
-    <process id="push-process-v2" name="Message Push Process" isExecutable="true">
+    <process id="user-push-process-v2" name="Message Push Process" isExecutable="true">
         <startEvent id="start-push" name="Push Trigger Message">
-            <messageEventDefinition messageRef="MSG_PUSH_V2" />
+            <messageEventDefinition messageRef="MSG_PUSH_USER_V2" />
         </startEvent>
         <serviceTask id="task-push-logic" name="Execute Push Logic" activiti:delegateExpression="${pushDelegate}" />
         <endEvent id="end-push" />
         <sequenceFlow id="p1" sourceRef="start-push" targetRef="task-push-logic" />
         <sequenceFlow id="p2" sourceRef="task-push-logic" targetRef="end-push" />
     </process>
+
+    <bpmndi:BPMNDiagram id="BPMNDiagram_collab-user-system">
+        <bpmndi:BPMNPlane bpmnElement="collab-user-system" id="BPMNPlane_collab-user-system">
+            
+            <!-- User Pool -->
+            <bpmndi:BPMNShape bpmnElement="part-user" id="BPMNShape_part-user" isHorizontal="true">
+                <omgdc:Bounds height="200.0" width="800.0" x="100.0" y="100.0"/>
+            </bpmndi:BPMNShape>
+            <bpmndi:BPMNShape bpmnElement="startEvent" id="BPMNShape_startEvent">
+                <omgdc:Bounds height="35.0" width="35.0" x="150.0" y="180.0"/>
+            </bpmndi:BPMNShape>
+            <bpmndi:BPMNShape bpmnElement="approveTask" id="BPMNShape_approveTask">
+                <omgdc:Bounds height="60.0" width="100.0" x="250.0" y="167.0"/>
+            </bpmndi:BPMNShape>
+            <bpmndi:BPMNShape bpmnElement="activateUserTask" id="BPMNShape_activateUserTask">
+                <omgdc:Bounds height="60.0" width="100.0" x="450.0" y="167.0"/>
+            </bpmndi:BPMNShape>
+            <bpmndi:BPMNShape bpmnElement="endEvent" id="BPMNShape_endEvent">
+                <omgdc:Bounds height="35.0" width="35.0" x="650.0" y="180.0"/>
+            </bpmndi:BPMNShape>
+            <bpmndi:BPMNEdge bpmnElement="flow1" id="BPMNEdge_flow1">
+                <omgdi:waypoint x="185.0" y="197.5"/>
+                <omgdi:waypoint x="250.0" y="197.0"/>
+            </bpmndi:BPMNEdge>
+            <bpmndi:BPMNEdge bpmnElement="flow2" id="BPMNEdge_flow2">
+                <omgdi:waypoint x="350.0" y="197.0"/>
+                <omgdi:waypoint x="450.0" y="197.0"/>
+            </bpmndi:BPMNEdge>
+            <bpmndi:BPMNEdge bpmnElement="flow3" id="BPMNEdge_flow3">
+                <omgdi:waypoint x="550.0" y="197.0"/>
+                <omgdi:waypoint x="650.0" y="197.5"/>
+            </bpmndi:BPMNEdge>
+
+            <!-- Search Pool -->
+            <bpmndi:BPMNShape bpmnElement="part-index" id="BPMNShape_part-index" isHorizontal="true">
+                <omgdc:Bounds height="200.0" width="800.0" x="100.0" y="400.0"/>
+            </bpmndi:BPMNShape>
+            <bpmndi:BPMNShape bpmnElement="start-index" id="BPMNShape_start-index">
+                <omgdc:Bounds height="35.0" width="35.0" x="150.0" y="480.0"/>
+            </bpmndi:BPMNShape>
+            <bpmndi:BPMNShape bpmnElement="task-index-logic" id="BPMNShape_task-index-logic">
+                <omgdc:Bounds height="60.0" width="100.0" x="250.0" y="467.0"/>
+            </bpmndi:BPMNShape>
+            <bpmndi:BPMNShape bpmnElement="end-index" id="BPMNShape_end-index">
+                <omgdc:Bounds height="35.0" width="35.0" x="450.0" y="480.0"/>
+            </bpmndi:BPMNShape>
+            <bpmndi:BPMNEdge bpmnElement="idx1" id="BPMNEdge_idx1">
+                <omgdi:waypoint x="185.0" y="497.5"/>
+                <omgdi:waypoint x="250.0" y="497.0"/>
+            </bpmndi:BPMNEdge>
+            <bpmndi:BPMNEdge bpmnElement="idx2" id="BPMNEdge_idx2">
+                <omgdi:waypoint x="350.0" y="497.0"/>
+                <omgdi:waypoint x="450.0" y="497.5"/>
+            </bpmndi:BPMNEdge>
+
+            <!-- Push Pool -->
+            <bpmndi:BPMNShape bpmnElement="part-push" id="BPMNShape_part-push" isHorizontal="true">
+                <omgdc:Bounds height="200.0" width="800.0" x="100.0" y="700.0"/>
+            </bpmndi:BPMNShape>
+            <bpmndi:BPMNShape bpmnElement="start-push" id="BPMNShape_start-push">
+                <omgdc:Bounds height="35.0" width="35.0" x="150.0" y="780.0"/>
+            </bpmndi:BPMNShape>
+            <bpmndi:BPMNShape bpmnElement="task-push-logic" id="BPMNShape_task-push-logic">
+                <omgdc:Bounds height="60.0" width="100.0" x="250.0" y="767.0"/>
+            </bpmndi:BPMNShape>
+            <bpmndi:BPMNShape bpmnElement="end-push" id="BPMNShape_end-push">
+                <omgdc:Bounds height="35.0" width="35.0" x="450.0" y="780.0"/>
+            </bpmndi:BPMNShape>
+            <bpmndi:BPMNEdge bpmnElement="p1" id="BPMNEdge_p1">
+                <omgdi:waypoint x="185.0" y="797.5"/>
+                <omgdi:waypoint x="250.0" y="797.0"/>
+            </bpmndi:BPMNEdge>
+            <bpmndi:BPMNEdge bpmnElement="p2" id="BPMNEdge_p2">
+                <omgdi:waypoint x="350.0" y="797.0"/>
+                <omgdi:waypoint x="450.0" y="797.5"/>
+            </bpmndi:BPMNEdge>
+
+            <!-- 消息流 (跨池虚线交互) -->
+            <bpmndi:BPMNEdge bpmnElement="msg-flow-index" id="BPMNEdge_msg-flow-index">
+                <omgdi:waypoint x="500.0" y="227.0"/>
+                <omgdi:waypoint x="500.0" y="320.0"/>
+                <omgdi:waypoint x="167.5" y="320.0"/>
+                <omgdi:waypoint x="167.5" y="480.0"/>
+            </bpmndi:BPMNEdge>
+            <bpmndi:BPMNEdge bpmnElement="msg-flow-push" id="BPMNEdge_msg-flow-push">
+                <omgdi:waypoint x="520.0" y="227.0"/>
+                <omgdi:waypoint x="520.0" y="620.0"/>
+                <omgdi:waypoint x="167.5" y="620.0"/>
+                <omgdi:waypoint x="167.5" y="780.0"/>
+            </bpmndi:BPMNEdge>
+        </bpmndi:BPMNPlane>
+    </bpmndi:BPMNDiagram>
 </definitions>

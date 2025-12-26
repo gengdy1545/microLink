@@ -2,18 +2,90 @@
 <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
              xmlns:activiti="http://activiti.org/bpmn"
-             targetNamespace="http://www.activiti.org/processdef">
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+             targetNamespace="http://activiti.org/content-system">
 
-    <process id="content-review" name="Content Review Process" isExecutable="true">
-        <startEvent id="start" name="Start" />
-        <sequenceFlow sourceRef="start" targetRef="reviewTask" />
-        
-        <userTask id="reviewTask" name="Review Content" activiti:assignee="admin">
-             <documentation>Review the published content</documentation>
-        </userTask>
-        
-        <sequenceFlow sourceRef="reviewTask" targetRef="end" />
-        <endEvent id="end" name="End" />
+    <message id="MSG_INDEX_SYNC_V2" name="INDEX_SYNC_MESSAGE_V2" />
+    <message id="MSG_PUSH_V2" name="SEND_PUSH_MSG_V2" />
+
+    <process id="content-publish-process-v2" name="Content Publish Process" isExecutable="true">
+        <startEvent id="startEvent" name="Start" />
+        <sequenceFlow id="flow1" sourceRef="startEvent" targetRef="autoReviewTask" />
+        <serviceTask id="autoReviewTask" name="Automated Content Review" activiti:delegateExpression="${contentReviewDelegate}" />
+        <sequenceFlow id="flow2" sourceRef="autoReviewTask" targetRef="reviewGateway" />
+        <exclusiveGateway id="reviewGateway" name="Review Result" />
+        <sequenceFlow id="flowApproved" name="Approved" sourceRef="reviewGateway" targetRef="publishTask">
+            <conditionExpression xsi:type="tFormalExpression">${autoCheckPassed == true}</conditionExpression>
+        </sequenceFlow>
+        <sequenceFlow id="flowRejected" name="Rejected" sourceRef="reviewGateway" targetRef="endEventRejected">
+             <conditionExpression xsi:type="tFormalExpression">${autoCheckPassed == false}</conditionExpression>
+        </sequenceFlow>
+        <serviceTask id="publishTask" name="Publish Content" activiti:delegateExpression="${contentPublishDelegate}" />
+        <sequenceFlow id="flow4" sourceRef="publishTask" targetRef="endEventPublished" />
+        <endEvent id="endEventPublished" name="Published" />
+        <endEvent id="endEventRejected" name="Review Failed" />
     </process>
 
+    <process id="index-sync-process-v2" name="Content Index Process" isExecutable="true">
+        <startEvent id="start-index" name="Index Sync Trigger">
+            <messageEventDefinition messageRef="MSG_INDEX_SYNC_V2" />
+        </startEvent>
+        <parallelGateway id="gw-index-split" />
+        <serviceTask id="task-es-index" name="Update ES Index" activiti:delegateExpression="${persistenceDelegate}" />
+        <serviceTask id="task-trigger-collect" name="Log Sync Event" activiti:delegateExpression="${triggerCollectionDelegate}" />
+        <parallelGateway id="gw-index-join" />
+        <endEvent id="end-index" />
+        <sequenceFlow id="idx1" sourceRef="start-index" targetRef="gw-index-split" />
+        <sequenceFlow id="idx2" sourceRef="gw-index-split" targetRef="task-es-index" />
+        <sequenceFlow id="idx3" sourceRef="gw-index-split" targetRef="task-trigger-collect" />
+        <sequenceFlow id="idx4" sourceRef="task-es-index" targetRef="gw-index-join" />
+        <sequenceFlow id="idx5" sourceRef="task-trigger-collect" targetRef="gw-index-join" />
+        <sequenceFlow id="idx6" sourceRef="gw-index-join" targetRef="end-index" />
+    </process>
+
+    <bpmndi:BPMNDiagram id="BPMNDiagram_collab-content-system">
+        <bpmndi:BPMNPlane bpmnElement="content-publish-process-v2" id="BPMNPlane_content-publish">
+            <bpmndi:BPMNShape bpmnElement="startEvent" id="BPMNShape_startEvent">
+                <omgdc:Bounds height="35.0" width="35.0" x="100.0" y="200.0"/>
+            </bpmndi:BPMNShape>
+            <bpmndi:BPMNShape bpmnElement="autoReviewTask" id="BPMNShape_autoReviewTask">
+                <omgdc:Bounds height="60.0" width="100.0" x="180.0" y="187.0"/>
+            </bpmndi:BPMNShape>
+            <bpmndi:BPMNShape bpmnElement="reviewGateway" id="BPMNShape_reviewGateway" isMarkerVisible="true">
+                <omgdc:Bounds height="40.0" width="40.0" x="320.0" y="197.0"/>
+            </bpmndi:BPMNShape>
+            <bpmndi:BPMNShape bpmnElement="publishTask" id="BPMNShape_publishTask">
+                <omgdc:Bounds height="60.0" width="100.0" x="450.0" y="187.0"/>
+            </bpmndi:BPMNShape>
+            <bpmndi:BPMNShape bpmnElement="endEventPublished" id="BPMNShape_endEventPublished">
+                <omgdc:Bounds height="35.0" width="35.0" x="650.0" y="200.0"/>
+            </bpmndi:BPMNShape>
+            <bpmndi:BPMNShape bpmnElement="endEventRejected" id="BPMNShape_endEventRejected">
+                <omgdc:Bounds height="35.0" width="35.0" x="450.0" y="300.0"/>
+            </bpmndi:BPMNShape>
+            <bpmndi:BPMNEdge bpmnElement="flow1" id="BPMNEdge_flow1">
+                <omgdi:waypoint x="135.0" y="217.5"/>
+                <omgdi:waypoint x="180.0" y="217.0"/>
+            </bpmndi:BPMNEdge>
+            <bpmndi:BPMNEdge bpmnElement="flow2" id="BPMNEdge_flow2">
+                <omgdi:waypoint x="280.0" y="217.0"/>
+                <omgdi:waypoint x="320.0" y="217.0"/>
+            </bpmndi:BPMNEdge>
+            <bpmndi:BPMNEdge bpmnElement="flowApproved" id="BPMNEdge_flowApproved">
+                <omgdi:waypoint x="360.0" y="217.0"/>
+                <omgdi:waypoint x="450.0" y="217.0"/>
+            </bpmndi:BPMNEdge>
+            <bpmndi:BPMNEdge bpmnElement="flowRejected" id="BPMNEdge_flowRejected">
+                <omgdi:waypoint x="340.0" y="237.0"/>
+                <omgdi:waypoint x="340.0" y="317.0"/>
+                <omgdi:waypoint x="450.0" y="317.5"/>
+            </bpmndi:BPMNEdge>
+            <bpmndi:BPMNEdge bpmnElement="flow4" id="BPMNEdge_flow4">
+                <omgdi:waypoint x="550.0" y="217.0"/>
+                <omgdi:waypoint x="650.0" y="217.5"/>
+            </bpmndi:BPMNEdge>
+        </bpmndi:BPMNPlane>
+    </bpmndi:BPMNDiagram>
 </definitions>
