@@ -48,4 +48,9 @@ public class ProcessService {
     public void completeTask(String taskId) {
         taskService.complete(taskId);
     }
+
+    @Transactional
+    public void completeTask(String taskId, Map<String, Object> variables) {
+        taskService.complete(taskId, variables);
+    }
 }

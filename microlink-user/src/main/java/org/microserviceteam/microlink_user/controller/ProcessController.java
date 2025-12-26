@@ -33,7 +33,7 @@ public class ProcessController {
         variables.put("userId", userDetails.getId());
         
         // Pass userId as businessKey
-        String processId = processService.startProcess("user-onboarding", String.valueOf(userDetails.getId()), variables);
+        String processId = processService.startProcess("user-onboarding-process", String.valueOf(userDetails.getId()), variables);
         
         Map<String, String> response = new HashMap<>();
         response.put("processId", processId);
@@ -81,8 +81,12 @@ public class ProcessController {
 
     @PostMapping("/tasks/{taskId}/complete")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> completeTask(@PathVariable String taskId) {
-        processService.completeTask(taskId);
+    public ResponseEntity<?> completeTask(@PathVariable String taskId, 
+                                          @RequestBody(required = false) Map<String, Object> variables) {
+        if (variables == null) {
+            variables = new HashMap<>();
+        }
+        processService.completeTask(taskId, variables);
         return ResponseEntity.ok(ApiResponse.success("Task completed", null));
     }
 }

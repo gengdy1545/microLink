@@ -10,7 +10,6 @@ import org.microserviceteam.microlink_user.repository.UserRepository;
 import org.microserviceteam.microlink_user.security.jwt.JwtUtils;
 import org.microserviceteam.microlink_user.security.services.UserDetailsImpl;
 import org.microserviceteam.microlink_user.service.ProcessService;
-import org.microserviceteam.microlink_user.client.WorkflowClient;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -51,9 +50,6 @@ public class AuthController {
 
     @Autowired
     ProcessService processService;
-
-    @Autowired
-    WorkflowClient workflowClient;
 
     @Value("${app.jwtExpirationMs}")
     private long jwtExpirationMs;
@@ -132,18 +128,25 @@ public class AuthController {
         }
 
         user.setRoles(roles);
+        
+        // Admin users are activated automatically for convenience, others need approval
+        if (roles.contains("ROLE_ADMIN")) {
+            user.setStatus("ACTIVE");
+        }
+        
         User savedUser = userRepository.save(user);
 
-        // Auto trigger onboarding process
-        try {
-            Map<String, Object> variables = new HashMap<>();
-            variables.put("applicant", savedUser.getUsername());
-            variables.put("userId", savedUser.getId());
-            // processService.startProcess("user-onboarding", String.valueOf(savedUser.getId()), variables);
-            workflowClient.startProcess("user-onboarding-process", variables);
-        } catch (Exception e) {
-            // Log error but do not fail registration
-            System.err.println("Failed to start onboarding process: " + e.getMessage());
+        // Auto trigger onboarding process for normal users
+        if (!roles.contains("ROLE_ADMIN")) {
+            try {
+                Map<String, Object> variables = new HashMap<>();
+                variables.put("applicant", savedUser.getUsername());
+                variables.put("userId", savedUser.getId());
+                processService.startProcess("user-onboarding-process", String.valueOf(savedUser.getId()), variables);
+            } catch (Exception e) {
+                // Log error but do not fail registration
+                System.err.println("Failed to start onboarding process: " + e.getMessage());
+            }
         }
 
         return ResponseEntity.ok(ApiResponse.success("User registered successfully!", savedUser));

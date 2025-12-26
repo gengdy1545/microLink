@@ -68,6 +68,39 @@ class ContentServiceTest {
         assertNotNull(result);
         assertEquals(title, result.getTitle());
         assertEquals(Content.ContentType.ARTICLE, result.getContentType());
-        verify(processService, times(1)).startProcess(eq("content-review"), any(Map.class));
+        verify(processService, times(1)).startProcess(eq("content-publish-process-v2"), any(Map.class));
+    }
+
+    @Test
+    void testCheckContent_Safe() {
+        Content content = new Content();
+        content.setTitle("Good Title");
+        content.setText("Nice content");
+        when(contentRepository.findById(1L)).thenReturn(java.util.Optional.of(content));
+
+        assertTrue(contentService.checkContent(1L));
+    }
+
+    @Test
+    void testCheckContent_BadWords() {
+        Content content = new Content();
+        content.setTitle("Bad words Title");
+        content.setText("Something else");
+        when(contentRepository.findById(2L)).thenReturn(java.util.Optional.of(content));
+
+        assertFalse(contentService.checkContent(2L));
+    }
+
+    @Test
+    void testUpdateStatus() {
+        Content content = new Content();
+        content.setId(1L);
+        content.setStatus(Content.ContentStatus.PENDING);
+        when(contentRepository.findById(1L)).thenReturn(java.util.Optional.of(content));
+
+        contentService.updateStatus(1L, Content.ContentStatus.PUBLISHED);
+
+        assertEquals(Content.ContentStatus.PUBLISHED, content.getStatus());
+        verify(contentRepository, times(1)).save(content);
     }
 }

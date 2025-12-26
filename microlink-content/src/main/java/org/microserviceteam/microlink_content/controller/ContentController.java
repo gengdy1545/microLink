@@ -30,7 +30,13 @@ public class ContentController {
 
     @PostMapping("/publish")
     public ResponseEntity<?> publish(@RequestBody PublishRequest request) {
-        String authorId = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        String authorId;
+        if (principal instanceof org.springframework.security.core.userdetails.UserDetails) {
+            authorId = ((org.springframework.security.core.userdetails.UserDetails) principal).getUsername();
+        } else {
+            authorId = principal.toString();
+        }
         Content content = contentService.publishContent(request, authorId);
         return ResponseEntity.status(HttpStatus.CREATED).body(content);
     }
@@ -98,7 +104,13 @@ public class ContentController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@PathVariable Long id) {
-        String authorId = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        String authorId;
+        if (principal instanceof org.springframework.security.core.userdetails.UserDetails) {
+            authorId = ((org.springframework.security.core.userdetails.UserDetails) principal).getUsername();
+        } else {
+            authorId = principal.toString();
+        }
         contentService.deleteContent(id, authorId);
         return ResponseEntity.noContent().build();
     }

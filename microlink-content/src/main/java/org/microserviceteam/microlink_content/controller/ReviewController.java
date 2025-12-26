@@ -25,7 +25,7 @@ public class ReviewController {
     @GetMapping("/tasks")
     public ResponseEntity<List<Map<String, Object>>> getReviewTasks() {
         // In real world, we check if user is admin
-        List<Task> tasks = processService.getTasksByProcessKey("admin", "content-review");
+        List<Task> tasks = processService.getTasksByProcessKey("admin", "content-publish-process-v2");
         
         List<Map<String, Object>> response = new ArrayList<>();
         for (Task task : tasks) {
@@ -50,24 +50,10 @@ public class ReviewController {
     public ResponseEntity<?> completeReview(@PathVariable String taskId, @RequestBody Map<String, Boolean> body) {
         boolean approved = body.getOrDefault("approved", false);
         
-        try {
-            Task task = processService.getTask(taskId);
-            if (task != null) {
-                Object contentIdObj = processService.getVariable(task.getProcessInstanceId(), "contentId");
-                if (contentIdObj != null) {
-                    Long contentId = Long.valueOf(contentIdObj.toString());
-                    if (approved) {
-                        contentService.updateStatus(contentId, Content.ContentStatus.PUBLISHED);
-                    } else {
-                        contentService.updateStatus(contentId, Content.ContentStatus.REJECTED);
-                    }
-                }
-            }
-        } catch (Exception e) {
-            // Log error but proceed to complete task
-        }
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("approved", approved);
         
-        processService.completeTask(taskId);
+        processService.completeTask(taskId, variables);
         return ResponseEntity.ok(Map.of("message", "Review completed"));
     }
 }

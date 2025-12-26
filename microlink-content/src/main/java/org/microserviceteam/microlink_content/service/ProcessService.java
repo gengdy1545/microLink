@@ -44,6 +44,11 @@ public class ProcessService {
     }
 
     @Transactional
+    public void completeTask(String taskId, Map<String, Object> variables) {
+        taskService.complete(taskId, variables);
+    }
+
+    @Transactional
     public Object getVariable(String processInstanceId, String variableName) {
         return runtimeService.getVariable(processInstanceId, variableName);
     }

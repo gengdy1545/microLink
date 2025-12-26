@@ -123,8 +123,8 @@ public class ContentService {
         Map<String, Object> variables = new HashMap<>();
         variables.put("contentId", savedContent.getId());
         variables.put("authorId", authorId);
-        // processService.startProcess("content-review", variables);
-        workflowClient.startProcess("content-publish-process", variables);
+        processService.startProcess("content-publish-process-v2", variables);
+        // workflowClient.startProcess("content-publish-process", variables);
 
         return savedContent;
     }
