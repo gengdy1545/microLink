@@ -140,10 +140,13 @@ public class WorkflowService {
         if (hpi == null) return node;
 
         // 2. 采集当前节点的变量快照 (拿到 lastOutput)
-        Map<String, Object> vars = new HashMap<>();
-        historyService.createHistoricVariableInstanceQuery()
+        Map<String, Object> vars = historyService.createHistoricVariableInstanceQuery()
                 .processInstanceId(instanceId).list()
-                .forEach(v -> vars.put(v.getVariableName(), v.getValue() == null ? "null" : v.getValue()));
+                .stream().collect(Collectors.toMap(
+                        HistoricVariableInstance::getVariableName,
+                        v -> v.getValue() == null ? "null" : v.getValue(),
+                        (existing, replacement) -> replacement // 保留最新的
+                ));
 
         // 3. 采集当前节点的轨迹 (Execution Path)
         List<Map<String, Object>> path = historyService.createHistoricActivityInstanceQuery()

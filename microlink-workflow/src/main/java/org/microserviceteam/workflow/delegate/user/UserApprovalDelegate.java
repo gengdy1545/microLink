@@ -1,4 +1,4 @@
-package org.microserviceteam.workflow.delegate;
+package org.microserviceteam.workflow.delegate.user;
 
 import org.activiti.engine.delegate.DelegateExecution;
 import org.activiti.engine.delegate.JavaDelegate;
@@ -40,14 +40,14 @@ public class UserApprovalDelegate implements JavaDelegate {
         vars.put("action", "USER_ONBOARDING");
 
         try {
-            workflowService.startByMessage("USER_INDEX_SYNC_MSG_V2", vars, execution);
+            workflowService.startByMessage("INDEX_SYNC_MESSAGE", vars, execution);
         } catch (Exception e) {
-            System.err.println("Failed to trigger USER_INDEX_SYNC_MSG_V2: " + e.getMessage());
+            System.err.println("Failed to trigger INDEX_SYNC_MESSAGE: " + e.getMessage());
         }
         try {
-            workflowService.startByMessage("SEND_PUSH_MSG_USER_V2", vars, execution);
+            workflowService.startByMessage("SEND_PUSH_MSG", vars, execution);
         } catch (Exception e) {
-            System.err.println("Failed to trigger SEND_PUSH_MSG_USER_V2: " + e.getMessage());
+            System.err.println("Failed to trigger SEND_PUSH_MSG: " + e.getMessage());
         }
     }
 }

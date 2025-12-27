@@ -15,9 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 @RestController
@@ -29,6 +27,7 @@ public class WorkflowManageController {
 
     @GetMapping("/definitions")
     public Result<List<String>> getDefinitions() {
+        // 查询数据库中已部署的流程定义
         List<ProcessDefinition> list = repositoryService.createProcessDefinitionQuery()
                 .latestVersion()
                 .list();
@@ -43,6 +42,7 @@ public class WorkflowManageController {
     @PostMapping("/flush-all")
     public Result<List<String>> flushAll() throws IOException {
         PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
+        // 匹配 resources/processes 及其子目录下所有 bpmn20.xml 或 xml 文件
         Resource[] resources = resolver.getResources("classpath*:processes/**/*.{bpmn20.xml,xml}");
 
         if (resources.length == 0) {
@@ -52,18 +52,14 @@ public class WorkflowManageController {
         DeploymentBuilder deploymentBuilder = repositoryService.createDeployment()
                 .name("Batch_Flush_" + System.currentTimeMillis());
 
-        Set<String> addedFiles = new HashSet<>();
         for (Resource resource : resources) {
-            String filename = resource.getFilename();
-            // 过滤掉备份文件并防止重复添加同名文件
-            if (filename != null && (filename.endsWith(".bpmn20.xml") || filename.endsWith(".xml")) && !filename.contains(".bak") && !addedFiles.contains(filename)) {
-                deploymentBuilder.addClasspathResource("processes/" + filename);
-                addedFiles.add(filename);
-            }
+            deploymentBuilder.addClasspathResource("processes/" + resource.getFilename());
         }
 
+        // 执行部署
         Deployment deployment = deploymentBuilder.deploy();
 
+        // 查询最新部署的所有流程信息
         List<ProcessDefinition> deployedDefs = repositoryService.createProcessDefinitionQuery()
                 .deploymentId(deployment.getId())
                 .list();
