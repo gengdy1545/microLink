@@ -144,8 +144,7 @@ public class WorkflowService {
                 .processInstanceId(instanceId).list()
                 .stream().collect(Collectors.toMap(
                         HistoricVariableInstance::getVariableName,
-                        v -> v.getValue() == null ? "null" : v.getValue(),
-                        (existing, replacement) -> replacement // 保留最新的
+                        v -> v.getValue() == null ? "null" : v.getValue()
                 ));
 
         // 3. 采集当前节点的轨迹 (Execution Path)
