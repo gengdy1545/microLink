@@ -7,7 +7,7 @@
              xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
              targetNamespace="http://activiti.org/content-system">
 
-    <process id="content-publish-process-v2" name="Content Publish Process" isExecutable="true">
+    <process id="content-publish-process" name="Content Publish Process" isExecutable="true">
         <startEvent id="startEvent" name="Start" />
         <sequenceFlow id="flow1" sourceRef="startEvent" targetRef="autoReviewTask" />
         
@@ -48,7 +48,7 @@
     </process>
 
     <bpmndi:BPMNDiagram id="BPMNDiagram_content-publish">
-        <bpmndi:BPMNPlane bpmnElement="content-publish-process-v2" id="BPMNPlane_content-publish">
+        <bpmndi:BPMNPlane bpmnElement="content-publish-process" id="BPMNPlane_content-publish">
             <bpmndi:BPMNShape bpmnElement="startEvent" id="BPMNShape_startEvent">
                 <omgdc:Bounds height="35.0" width="35.0" x="50.0" y="100.0"/>
             </bpmndi:BPMNShape>

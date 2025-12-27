@@ -18,7 +18,7 @@
 
 	<modules>
 		<module>microlink-common</module>
-<!--		<module>microlink-user</module>-->
+		<module>microlink-user</module>
 		<module>microlink-content</module>
 		<module>microlink-social</module>
 		<module>microlink-search</module>
@@ -44,10 +44,6 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.projectlombok</groupId>
-			<artifactId>lombok</artifactId>
 		</dependency>
 
 		<dependency>
